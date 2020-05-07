@@ -3,7 +3,7 @@
     <!-- 文件输出格式 -->
     <property name="PATTERN" value="%-12(%d{yyyy-MM-dd HH:mm:ss.SSS}) |-%-5level [%thread] %c [%L] -| %msg%n" />
 
-    <property name="PRO_FILE_PATH" value="/opt/logs/chhk.log" />
+    <property name="PRO_FILE_PATH" value="/opt/logs/websocket.log" />
 
     <!-- 生产环境 -->
     <appender name="PROD_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">

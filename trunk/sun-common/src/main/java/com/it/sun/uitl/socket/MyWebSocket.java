@@ -1,10 +1,15 @@
 package com.it.sun.uitl.socket;
 
+import com.alibaba.fastjson.JSONObject;
 import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 
@@ -16,6 +21,8 @@ public class MyWebSocket {
 
     //concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
     private static CopyOnWriteArraySet<MyWebSocket> webSocketSet = new CopyOnWriteArraySet<MyWebSocket>();
+
+    private static Map<String,List<Session>> sessMap=new HashMap<String,List<Session>>();//将 会话 分类，按照 openid分组，openid是前端生成的
 
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
     private Session session;
@@ -55,14 +62,50 @@ public class MyWebSocket {
     @OnMessage
     public void onMessage(String message, Session session) {
         System.out.println("来自客户端的消息:" + message);
+        try {
+            //开始分析数据
+            JSONObject jo = JSONObject.parseObject(message);
+            String openid=jo.getString("openid");//
+            String msg=jo.getString("msg");//
+            jo.put("c",200);
 
-        //群发消息
-        for (MyWebSocket item : webSocketSet) {
-            try {
-                item.sendMessage(message);
-            } catch (IOException e) {
-                e.printStackTrace();
+            List<Session> sessS;
+            //判断openid是否存在sessMap中
+            if(sessMap.containsKey(openid)){//存在就判断当前session是否在map的list中
+                sessS=sessMap.get(openid);
+
+                boolean fl=true;
+                for (int i=0;i<sessS.size();i++){
+                    if(sessS.get(i).getId().equals(session.getId())){
+                        fl=false;
+                        break;
+                    }
+                }
+                if(fl){
+                    sessS.add(session);
+                }
+            }else {//不存在就创建
+                sessS=new ArrayList<Session>();
+                sessS.add(session);
+                sessMap.put(openid,sessS);
             }
+
+            //群发消息
+            for (int i=0;i<sessS.size();i++) {
+                try {
+                    sessS.get(i).getBasicRemote().sendText(jo.toJSONString());
+                } catch (Exception e) {
+                    sessS.remove(i);
+                    i--;
+                }
+            }
+        }catch (Exception e){
+            try {
+                JSONObject resultJo=new JSONObject();
+                resultJo.put("c", 500);
+                resultJo.put("msg","消息格式不正确");
+                session.getBasicRemote().sendText(resultJo.toJSONString());
+            }catch (Exception epx){}
         }
     }
 
