@@ -1,1 +1,1 @@
-### 测试地址：wss://www.chaunve.club:8888/websocket
+### 测试地址：wss://openapi.cloudindoormap.com:8088/websocket
